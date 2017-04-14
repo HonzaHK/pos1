@@ -8,16 +8,16 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-typedef struct clargs_t {
+typedef struct {
 	int threadCount;
 	int loopCount;
 } clargs_t;
 clargs_t clargs;
 
-pthread_mutex_t ticketLock;
-int ticketShared = 0;
+pthread_mutex_t ticketGeneratorMutex;
+int ticketsAssignedCount = 0;
 
-typedef struct ticket_lock {
+typedef struct {
     pthread_cond_t cond;
     pthread_mutex_t mutex;
     unsigned long queue_head, queue_tail;
@@ -52,26 +52,25 @@ int parseArgs(int argc, char* argv[], clargs_t* clargs){
 
 void await(int aenter){
 
-    pthread_mutex_lock(&csLock.mutex);
-    while (aenter != csLock.currentTicket)
-    {
-        pthread_cond_wait(&csLock.cond, &csLock.mutex);
-    }
-    pthread_mutex_unlock(&csLock.mutex);
+	pthread_mutex_lock(&csLock.mutex);
+	while (aenter != csLock.currentTicket){
+		pthread_cond_wait(&csLock.cond, &csLock.mutex);
+	}
+	pthread_mutex_unlock(&csLock.mutex);
 }
 
 void advance(){
- 	pthread_mutex_lock(&csLock.mutex);
-    csLock.currentTicket++;
-    pthread_cond_broadcast(&csLock.cond);
-    pthread_mutex_unlock(&csLock.mutex);
+	pthread_mutex_lock(&csLock.mutex);
+	csLock.currentTicket++;
+	pthread_cond_broadcast(&csLock.cond);
+	pthread_mutex_unlock(&csLock.mutex);
 }
 
 int getticket(){
-	pthread_mutex_lock(&ticketLock);
-	int nth = ticketShared;
-	ticketShared++;
-	pthread_mutex_unlock(&ticketLock);
+	pthread_mutex_lock(&ticketGeneratorMutex);
+	int nth = ticketsAssignedCount;
+	ticketsAssignedCount++;
+	pthread_mutex_unlock(&ticketGeneratorMutex);
 	return nth;
 }
 
@@ -113,12 +112,11 @@ int main(int argc, char* argv[]){
 	
 	int errno = 0;	
 	if((errno=parseArgs(argc,argv,&clargs))!=0){
-		printf("%d",errno);
 		printHelp();
 		return errno;
 	}
 
-	pthread_mutex_init(&ticketLock,NULL); 
+	pthread_mutex_init(&ticketGeneratorMutex,NULL); 
 	pthread_mutex_init(&csLock.mutex,NULL); 
 	pthread_t threads[clargs.threadCount];
 
