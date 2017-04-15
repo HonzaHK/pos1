@@ -1,5 +1,7 @@
 //FIT VUTBR - POS - project 1
 //JAN KUBIS / xkubis13
+#define _POSIX_C_SOURCE 199506L
+//#define _REENTRANT //gcc yells redefinition
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,23 +10,21 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-typedef struct {
+typedef struct { //comand line arguments
 	int threadCount;
 	int loopCount;
 } clargs_t;
 clargs_t clargs;
 
-pthread_mutex_t ticketGeneratorMutex;
-int ticketsAssignedCount = 0;
+pthread_mutex_t ticketGeneratorMutex; //mutual exclusion during ticket number assignment
+int ticketsAssignedCount = 0; //shared variable protected by ticketGeneratorMutex
 
-typedef struct {
+typedef struct { //critical section variables
     pthread_cond_t cond;
     pthread_mutex_t mutex;
-    unsigned long queue_head, queue_tail;
     int currentTicket;
 } ticket_lock_t;
 ticket_lock_t csLock;
-
 
 void printHelp(){
 	printf("FIT VUT - POS - project 1  |  Jan Kubis\n");
@@ -92,7 +92,6 @@ void *threadFunc(void *id_voidptr){
 	int threadId = *((int *)id_voidptr);
 	//printf("t_id:%d (%ld)\n", id,pthread_self());
 
-
 	int ticket;
 	while ((ticket = getticket()) < clargs.loopCount) { /* Přidělení lístku */
 	   	myNanoSleep(threadId);
@@ -117,9 +116,9 @@ int main(int argc, char* argv[]){
 	}
 
 	pthread_mutex_init(&ticketGeneratorMutex,NULL); 
-	pthread_mutex_init(&csLock.mutex,NULL); 
+	pthread_mutex_init(&csLock.mutex,NULL);
+	 
 	pthread_t threads[clargs.threadCount];
-
 	for(int i=0; i<clargs.threadCount; i++){
 		int *t_id = malloc(sizeof(int));
 		*t_id = i;
