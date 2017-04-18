@@ -117,20 +117,26 @@ int main(int argc, char* argv[]){
 
 	pthread_mutex_init(&ticketGeneratorMutex,NULL); 
 	pthread_mutex_init(&csLock.mutex,NULL);
+	pthread_cond_init(&csLock.cond,NULL);
 	 
 	pthread_t threads[clargs.threadCount];
+	int t_ids[clargs.threadCount];
+
 	for(int i=0; i<clargs.threadCount; i++){
-		int *t_id = malloc(sizeof(int));
-		*t_id = i;
-		if(pthread_create(&threads[i], NULL, &threadFunc, t_id)) {
+		t_ids[i] = i;
+		if(pthread_create(&threads[i], NULL, &threadFunc, &t_ids[i])) {
 			fprintf(stderr, "Error creating thread\n");
 			return 1;
 		}
 	}
 
 	for(int i=0; i<clargs.threadCount; i++){
-    	pthread_join(threads[i], NULL);
+		pthread_join(threads[i], NULL);
 	}
+
+	pthread_mutex_destroy(&ticketGeneratorMutex);
+	pthread_mutex_destroy(&csLock.mutex);
+	pthread_cond_destroy(&csLock.cond);
 
 	return 0;
 }
