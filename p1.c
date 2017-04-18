@@ -123,7 +123,7 @@ int main(int argc, char* argv[]){
 	int t_ids[clargs.threadCount];
 
 	for(int i=0; i<clargs.threadCount; i++){
-		t_ids[i] = i;
+		t_ids[i] = i+1; //threads are 1-N (if id==0, rand_r seed will be always 0)
 		if(pthread_create(&threads[i], NULL, &threadFunc, &t_ids[i])) {
 			fprintf(stderr, "Error creating thread\n");
 			return 1;
